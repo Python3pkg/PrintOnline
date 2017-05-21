@@ -6,11 +6,11 @@ import os
 import wsgiref.util
 
 
-import PrintOnline
+from . import PrintOnline
 try:
-    from cStringIO import StringIO
+    from io import StringIO
 except ImportError:
-    from StringIO import StringIO
+    from io import StringIO
 
 class HeadsWarp(object):
     environ = None
@@ -62,7 +62,7 @@ class WSGIHandler(PrintOnline.PrintOnlineRequestHandler):
     
     @property
     def response_headers(self):
-        return self.response_headermap.items()
+        return list(self.response_headermap.items())
 
 if os.environ.get('WSGI_PARAMS'):
     argv = [v.strip() for v in os.environ.get('WSGI_PARAMS').split(' ') if v.strip()]

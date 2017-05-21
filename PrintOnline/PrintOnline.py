@@ -13,14 +13,14 @@ This module refer to SimpleHTTPServer
 
 __version__ = "0.0.3"
 
-import BaseHTTPServer
-import SocketServer
+import http.server
+import socketserver
 import json
 import os
 import shutil
 import socket
 import sys
-import urlparse
+import urllib.parse
 import cgi
 import re
 import inspect
@@ -28,9 +28,9 @@ import tempfile
 
 
 try:
-    from cStringIO import StringIO
+    from io import StringIO
 except ImportError:
-    from StringIO import StringIO
+    from io import StringIO
 
 reload(sys)
 sys.setdefaultencoding("utf-8")
@@ -67,11 +67,11 @@ def get_files():
             if os.path.isfile(os.path.join(options['tempdir'], f)):
                 try:
                     arr.append({
-                            'name':u'%s' % f.decode('windows-1252'),
+                            'name':'%s' % f.decode('windows-1252'),
                             'st_mtime':os.stat(os.path.join(d, f)).st_mtime
                         })
-                except Exception, e:
-                    print e
+                except Exception as e:
+                    print(e)
         arr.sort(key=lambda x:x['st_mtime'])
         return arr 
     else:
@@ -100,12 +100,12 @@ def print_file(filename, printername):
     try:
         win32api.ShellExecute(0, "print", filename, device, options['tempdir'], 0)
         return True
-    except Exception, e:
-        print e
+    except Exception as e:
+        print(e)
         return False
         
 
-class PrintOnlineRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class PrintOnlineRequestHandler(http.server.BaseHTTPRequestHandler):
     server_version = "PrintOnline/" + __version__
     protocol_version = "HTTP/1.1"
     editortmpl = ''
@@ -175,14 +175,14 @@ class PrintOnlineRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if not self.check_auth():
             return
         self.path = self.path.replace('..', '')
-        url = urlparse.urlparse(self.path)
+        url = urllib.parse.urlparse(self.path)
         contenttype = 'text/html'
         statuscode = 200
         f = StringIO()
 #         print url
         if url.path.startswith('/api/'):
             try:
-                from urllib import unquote
+                from urllib.parse import unquote
                 contenttype = 'text/json'
                 apiname = 'api_%s' % (url.path.replace('/api/', ''))
                 if not hasattr(self, apiname):
@@ -212,7 +212,7 @@ class PrintOnlineRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                         raise ex('need argments: %s' % (', '.join(missargs)))
                 data = apifunc(**kvargs)
                 res = {'data':data, 'code':0}
-            except ApiException, e:
+            except ApiException as e:
                 res = e.res
             f.write(json.dumps(res))
         else:
@@ -224,7 +224,7 @@ class PrintOnlineRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 f.write(open(tfilepath, 'rb').read())
                 contenttype = None
             else:
-                print os.path.join(options['tempdir'], url.path.strip('/'))
+                print(os.path.join(options['tempdir'], url.path.strip('/')))
                 statuscode = 404
                 f.write("404 not found")
 
@@ -238,11 +238,11 @@ class PrintOnlineRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         shutil.copyfileobj(f, self.wfile)
 
 
-class ThreadingHTTPServer(SocketServer.ThreadingTCPServer):
+class ThreadingHTTPServer(socketserver.ThreadingTCPServer):
     allow_reuse_address = 1  # Seems to make sense in testing environment
     def server_bind(self):
         """Override server_bind to store the server name."""
-        SocketServer.TCPServer.server_bind(self)
+        socketserver.TCPServer.server_bind(self)
         host, port = self.socket.getsockname()[:2]
         self.server_name = socket.getfqdn(host)
         self.server_port = port
@@ -252,8 +252,8 @@ def start():
     server_address = (options['bind'], port)
     httpd = ThreadingHTTPServer(server_address, PrintOnlineRequestHandler)
     sa = httpd.socket.getsockname()
-    print "Temp Directory: %s" % options.get('tempdir')
-    print "Serving HTTP on", sa[0], "port", sa[1], "..."
+    print("Temp Directory: %s" % options.get('tempdir'))
+    print("Serving HTTP on", sa[0], "port", sa[1], "...")
     httpd.serve_forever()
 
 def config(argv):
@@ -269,8 +269,8 @@ def config(argv):
         elif opt == '-t':
             options['tempdir'] = arg
         elif opt == '-h':
-            print 'Usage: python -m PrintOnline [-u username] [-p password] [-r realm] [-t tempdir] [bindaddress:port | port]'
-            print 'Report bugs to <sintrb@gmail.com>'
+            print('Usage: python -m PrintOnline [-u username] [-p password] [-r realm] [-t tempdir] [bindaddress:port | port]')
+            print('Report bugs to <sintrb@gmail.com>')
             exit()
 
     if options.get('username') and options.get('password'):
@@ -292,7 +292,7 @@ def main():
 
 def test():
     config(sys.argv[1:])
-    print get_files()
+    print(get_files())
 
 if __name__ == '__main__':
 #     test()
